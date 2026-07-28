@@ -1,0 +1,30 @@
+.loadingContainer,
+.errorContainer,
+.processingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 24px;
+}
+
+.errorContainer {
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.loadingContainer {
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: var(--accent-start);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

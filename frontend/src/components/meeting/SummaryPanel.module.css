@@ -1,0 +1,13 @@
+.container { display: flex; flex-direction: column; gap: 16px; }
+.loading { display: flex; flex-direction: column; gap: 16px; }
+.empty { padding: 32px; text-align: center; color: var(--text-tertiary); font-size: 0.875rem; }
+.section { padding: 20px; }
+.sectionHeader { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.sectionHeader h3 { font-size: 0.9375rem; font-weight: 600; }
+.iconAccent { color: var(--accent-start); }
+.iconWarn { color: var(--warning); }
+.summaryText { font-size: 0.9375rem; line-height: 1.7; color: var(--text-secondary); }
+.list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.listItem { position: relative; padding-left: 20px; font-size: 0.875rem; line-height: 1.6; color: var(--text-secondary); }
+.listItem::before { content: ''; position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-start); }
+.takeaway::before { background: var(--warning); }
