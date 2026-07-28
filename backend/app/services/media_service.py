@@ -47,6 +47,11 @@ def download_youtube_audio(url: str, meeting_id: str) -> dict:
             "-ar", "16000",
             "-ac", "1",
         ],
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["ios", "android"]
+            }
+        },
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
