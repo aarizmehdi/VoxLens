@@ -1,11 +1,7 @@
 """
 VoxLens — Transcription Service
 
-Routes transcription to the appropriate engine:
-- faster-whisper for English (local, free)
-- Sarvam AI for Hindi/Hinglish (API, better quality for Indian languages)
-
-Falls back to Whisper if Sarvam is unavailable.
+Routes transcription to the appropriate- Whisper / Faster Whisper (Local, robust, multi-language)
 """
 
 import logging
@@ -114,56 +110,6 @@ def transcribe_whisper(audio_path: Path) -> TranscriptResult:
     )
 
 
-def transcribe_sarvam(audio_path: Path) -> TranscriptResult:
-    """
-    Transcribe audio using Sarvam AI API.
-    Best for Hindi/Hinglish content.
-    """
-    if not settings.sarvam_api_key:
-        raise RuntimeError("Sarvam API key not configured")
-
-    logger.info(f"Transcribing with Sarvam AI: {audio_path.name}")
-
-    from sarvamai import SarvamAI
-
-    client = SarvamAI(api_subscription_key=settings.sarvam_api_key)
-
-    with open(audio_path, "rb") as audio_file:
-        response = client.speech_to_text(
-            file=audio_file,
-            model=settings.sarvam_model,
-            mode="codemix",  # Best for Hinglish
-        )
-
-    # Parse Sarvam response into segments
-    segments = []
-    if hasattr(response, "segments") and response.segments:
-        for seg in response.segments:
-            segments.append(TranscriptSegment(
-                start=getattr(seg, "start", 0.0),
-                end=getattr(seg, "end", 0.0),
-                text=clean_transcript_text(getattr(seg, "text", "")),
-            ))
-    elif hasattr(response, "text") and response.text:
-        # Fallback: single segment
-        segments.append(TranscriptSegment(
-            start=0.0,
-            end=0.0,
-            text=clean_transcript_text(response.text),
-        ))
-
-    full_text = " ".join(s.text for s in segments)
-
-    logger.info(f"Sarvam transcription complete: {len(segments)} segments")
-
-    return TranscriptResult(
-        segments=segments,
-        full_text=full_text,
-        language="hi",
-        engine="sarvam",
-    )
-
-
 def transcribe(
     audio_path: Path,
     language: str = "auto",
@@ -179,24 +125,4 @@ def transcribe(
     Returns:
         TranscriptResult with segments and full text
     """
-    # If Hindi explicitly requested and Sarvam is available, use it
-    if language == "hi" and settings.sarvam_api_key:
-        try:
-            return transcribe_sarvam(audio_path)
-        except Exception as e:
-            logger.warning(f"Sarvam transcription failed, falling back to Whisper: {e}")
-
-    # Default: use Whisper
-    result = transcribe_whisper(audio_path)
-
-    # If auto-detect and the result looks Hindi, try Sarvam for better quality
-    if language == "auto" and settings.sarvam_api_key:
-        detected = estimate_language(result.full_text)
-        if detected == "hi":
-            logger.info("Hindi detected — retrying with Sarvam AI for better quality")
-            try:
-                return transcribe_sarvam(audio_path)
-            except Exception as e:
-                logger.warning(f"Sarvam retry failed: {e}")
-
-    return result
+    return transcribe_whisper(audio_path)

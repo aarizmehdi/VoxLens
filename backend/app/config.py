@@ -37,9 +37,6 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
 
-    # --- Sarvam AI ---
-    sarvam_api_key: str = ""
-    sarvam_model: str = "saaras:v3"
 
     # --- Whisper ---
     whisper_model_size: str = "base"

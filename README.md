@@ -5,7 +5,7 @@ VoxLens is a production-grade, local-first AI assistant that ingests YouTube lin
 ## Features
 
 - **Media Ingestion**: Accept YouTube URLs or local audio/video file uploads.
-- **Fast, Local-First Transcription**: Powered by `faster-whisper` for English, with `sarvamai` available for Hindi/Hinglish optimization.
+- **Fast, Local-First Transcription**: Powered by `faster-whisper` for English and general language optimization.
 - **Smart Summaries & Extraction**: Automatically generates concise summaries, action items (with owners and deadlines), decisions, and open questions using the DeepSeek API.
 - **RAG Chat**: Ask questions about the meeting. The assistant finds relevant chunks from the transcript and provides grounded answers with citations.
 - **Premium UI**: A polished, responsive React frontend built with a custom dark-mode design system.
@@ -33,7 +33,7 @@ VoxLens uses an asynchronous processing architecture to keep the UI snappy while
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` and add your `DEEPSEEK_API_KEY`. (Optional: add `SARVAM_API_KEY` for Hindi transcription).
+   Edit `.env` and add your `DEEPSEEK_API_KEY`.
 
 3. **Start the stack**
    ```bash

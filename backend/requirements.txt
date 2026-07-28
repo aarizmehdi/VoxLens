@@ -21,7 +21,7 @@ ffmpeg-python>=0.2.0
 
 # --- Speech-to-Text ---
 faster-whisper>=1.1.0
-sarvamai>=0.1.0
+
 
 # --- LLM ---
 openai>=1.57.0
