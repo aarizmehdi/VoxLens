@@ -5,10 +5,10 @@
  */
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, AlertCircle, Loader2, FileAudio, MessageSquare } from "lucide-react";
+import { Clock, AlertCircle, Loader2, MessageSquare } from "lucide-react";
 import { useMeetings } from "@/hooks/use-meeting";
 import { useStore } from "@/lib/store";
-import { formatDate, truncate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import styles from "./Sidebar.module.css";
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -27,7 +27,6 @@ const PROCESSING_STATUSES = [
 
 export function Sidebar() {
   const sidebarOpen = useStore((s) => s.sidebarOpen);
-  const toggleSidebar = useStore((s) => s.toggleSidebar);
   const activeMeetingId = useStore((s) => s.activeMeetingId);
   const setActiveMeetingId = useStore((s) => s.setActiveMeetingId);
   const setSidebarOpen = useStore((s) => s.setSidebarOpen);

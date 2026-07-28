@@ -5,8 +5,6 @@
  */
 
 import type { ReactNode } from "react";
-import { PanelLeft } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import styles from "./MainLayout.module.css";
