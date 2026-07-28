@@ -45,8 +45,7 @@ def _update_meeting_status(
         db.close()
 
 
-@celery_app.task(bind=True, name="process_meeting_task")
-def process_meeting_task(self, meeting_id: str):
+def process_meeting_task(meeting_id: str):
     """
     Main processing pipeline for a meeting.
     Handles the full flow from media ingestion to RAG embedding.

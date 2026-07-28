@@ -7,7 +7,7 @@ Accepts YouTube URLs or file uploads and kicks off the processing pipeline.
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.post("/process/url", response_model=MeetingResponse, tags=["Processing"])
-async def process_url(request: ProcessURLRequest, db: Session = Depends(get_db)):
+async def process_url(request: ProcessURLRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Process a YouTube URL.
     Downloads the video, extracts audio, transcribes, summarizes, and embeds.
@@ -47,13 +47,14 @@ async def process_url(request: ProcessURLRequest, db: Session = Depends(get_db))
     # Dispatch background task
     from app.workers.tasks import process_meeting_task
 
-    process_meeting_task.delay(meeting.id)
+    background_tasks.add_task(process_meeting_task, meeting.id)
 
     return meeting
 
 
 @router.post("/process/upload", response_model=MeetingResponse, tags=["Processing"])
 async def process_upload(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     language: str = Form(default="auto"),
     db: Session = Depends(get_db),
@@ -109,6 +110,6 @@ async def process_upload(
     # Dispatch background task
     from app.workers.tasks import process_meeting_task
 
-    process_meeting_task.delay(meeting.id)
+    background_tasks.add_task(process_meeting_task, meeting.id)
 
     return meeting
