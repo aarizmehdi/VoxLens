@@ -413,6 +413,8 @@ a:hover { color: var(--accent-end); }
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab {

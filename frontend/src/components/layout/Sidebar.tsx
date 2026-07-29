@@ -4,6 +4,7 @@
  * Meeting history list with status indicators.
  */
 
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, AlertCircle, Loader2, MessageSquare } from "lucide-react";
 import { useMeetings } from "@/hooks/use-meeting";
@@ -37,13 +38,21 @@ export function Sidebar() {
     .filter((m) => m.status === "completed")
     .slice(0, 5);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 1024);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   return (
     <AnimatePresence>
       {sidebarOpen && (
         <motion.aside
           className={styles.sidebar}
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 300, opacity: 1 }}
+          animate={{ width: isMobile ? "100%" : 300, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >

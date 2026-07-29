@@ -49,7 +49,7 @@ export function Header() {
             onClick={() => setActiveMeetingId(null)}
           >
             <Plus size={16} />
-            New Meeting
+            <span className={styles.newMeetingText}>New Meeting</span>
           </button>
         )}
       </div>
