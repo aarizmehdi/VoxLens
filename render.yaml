@@ -12,3 +12,5 @@ services:
         value: base
       - key: GROQ_API_KEY
         sync: false
+      - key: RAPIDAPI_KEY
+        sync: false

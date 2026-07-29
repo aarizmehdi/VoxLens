@@ -6,6 +6,8 @@ Uses yt-dlp for YouTube and FFmpeg for audio extraction/normalization.
 """
 
 import logging
+import re
+import httpx
 from pathlib import Path
 
 import yt_dlp
@@ -24,14 +26,73 @@ logger = logging.getLogger("voxlens.media")
 
 def download_youtube_audio(url: str, meeting_id: str) -> dict:
     """
-    Download audio from a YouTube video using yt-dlp.
+    Download audio from a YouTube video.
+    Uses RapidAPI if configured, otherwise falls back to yt-dlp.
 
     Returns:
         dict with keys: audio_path, title, duration
     """
     output_dir = settings.media_path / meeting_id
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # --- RAPIDAPI PROXY METHOD ---
+    if settings.rapidapi_key:
+        logger.info(f"Using RapidAPI Proxy to download YouTube audio: {url}")
+        try:
+            # Extract video ID
+            video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
+            if not video_id_match:
+                raise ValueError("Could not extract YouTube Video ID")
+            
+            video_id = video_id_match.group(1)
+            
+            api_url = "https://youtube-mp36.p.rapidapi.com/dl"
+            querystring = {"id": video_id}
+            headers = {
+                "x-rapidapi-key": settings.rapidapi_key,
+                "x-rapidapi-host": "youtube-mp36.p.rapidapi.com"
+            }
 
+            with httpx.Client(timeout=60.0) as client:
+                response = client.get(api_url, headers=headers, params=querystring)
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get("status") == "ok" and data.get("link"):
+                    download_url = data.get("link")
+                    title = data.get("title", "Untitled")
+                    duration = data.get("duration", 0)
+                    
+                    # Download the actual MP3
+                    mp3_path = output_dir / f"{title}.mp3"
+                    with client.stream("GET", download_url) as r:
+                        r.raise_for_status()
+                        with open(mp3_path, "wb") as f:
+                            for chunk in r.iter_bytes(chunk_size=8192):
+                                f.write(chunk)
+                    
+                    # Normalize the MP3 to WAV using our existing util
+                    normalized_path = output_dir / "audio_normalized.wav"
+                    normalize_audio(mp3_path, normalized_path)
+                    
+                    # Clean up temp mp3
+                    mp3_path.unlink(missing_ok=True)
+                    
+                    return {
+                        "audio_path": normalized_path,
+                        "title": title,
+                        "duration": float(duration) if duration else get_audio_duration(normalized_path)
+                    }
+                else:
+                    logger.error(f"RapidAPI returned error: {data}")
+                    logger.info("Falling back to yt-dlp...")
+        except Exception as e:
+            logger.error(f"RapidAPI request failed: {e}")
+            logger.info("Falling back to yt-dlp...")
+
+    # --- YT-DLP FALLBACK METHOD ---
+    logger.info(f"Downloading YouTube audio using yt-dlp: {url}")
+    
     output_template = str(output_dir / "%(title)s.%(ext)s")
 
     ydl_opts = {
@@ -67,8 +128,6 @@ def download_youtube_audio(url: str, meeting_id: str) -> dict:
     elif local_cookies.exists():
         ydl_opts["cookiefile"] = str(local_cookies.absolute())
         logger.info(f"Injecting authenticated YouTube cookies from {local_cookies.absolute()}")
-
-    logger.info(f"Downloading YouTube audio: {url}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)

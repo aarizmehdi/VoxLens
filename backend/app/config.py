@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     media_dir: str = "./media"
     max_file_size_mb: int = 500
     audio_chunk_duration_seconds: int = 300
+    rapidapi_key: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
