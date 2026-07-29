@@ -14,7 +14,7 @@ Each step updates the meeting record with progress information.
 import logging
 from pathlib import Path
 
-from app.workers.celery_app import celery_app
+
 from app.database import SessionLocal
 from app.models import Meeting, TranscriptChunk, SummaryReport
 from app.config import settings

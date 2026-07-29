@@ -32,7 +32,10 @@ export function Sidebar() {
   const setSidebarOpen = useStore((s) => s.setSidebarOpen);
   const { data } = useMeetings();
 
-  const meetings = data?.meetings ?? [];
+  const allMeetings = data?.meetings ?? [];
+  const completedMeetings = allMeetings
+    .filter((m) => m.status === "completed")
+    .slice(0, 5);
 
   return (
     <AnimatePresence>
@@ -50,15 +53,15 @@ export function Sidebar() {
             </div>
 
             <div className={styles.list}>
-              {meetings.length === 0 && (
+              {completedMeetings.length === 0 && (
                 <div className={styles.empty}>
-                  No meetings yet.
+                  No completed meetings.
                   <br />
-                  Process your first video!
+                  Upload a file to get started!
                 </div>
               )}
 
-              {meetings.map((meeting, i) => {
+              {completedMeetings.map((meeting, i) => {
                 const isActive = meeting.id === activeMeetingId;
                 const isProcessing = PROCESSING_STATUSES.includes(meeting.status);
                 const statusIcon = isProcessing ? (
