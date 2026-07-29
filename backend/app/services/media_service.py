@@ -7,10 +7,9 @@ Uses yt-dlp for YouTube and FFmpeg for audio extraction/normalization.
 
 import logging
 import re
-import httpx
+import logging
 from pathlib import Path
-
-import yt_dlp
+from pytubefix import YouTube
 
 from app.config import settings
 from app.utils.audio import (
@@ -26,75 +25,50 @@ logger = logging.getLogger("voxlens.media")
 
 def download_youtube_audio(url: str, meeting_id: str) -> dict:
     """
-    Download audio from a YouTube video using yt-dlp.
+    Download audio from a YouTube video using pytubefix (natively bypasses bot blocks).
     """
     output_dir = settings.media_path / meeting_id
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Downloading YouTube audio using yt-dlp: {url}")
+    logger.info(f"Downloading YouTube audio using pytubefix: {url}")
     
-    output_template = str(output_dir / "%(title)s.%(ext)s")
-
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": output_template,
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "wav",
-            }
-        ],
-        "postprocessor_args": [
-            "-ar", "16000",
-            "-ac", "1",
-        ],
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["ios", "android"]
-            }
-        },
-        "quiet": False,
-        "no_warnings": False,
-        "extract_flat": False,
-    }
-
-    # EXTREME PATH VALIDATION FOR RENDER SECRET FILES
-    cookie_paths_to_try = [
-        Path("/etc/secrets/youtube_cookies.txt"),           # Docker Secret path
-        Path("/opt/render/project/src/youtube_cookies.txt"), # Native Render path
-        Path("youtube_cookies.txt"),                        # Local root path
-        Path("backend/youtube_cookies.txt")                 # Local nested path
-    ]
-    
-    cookie_found = False
-    for p in cookie_paths_to_try:
-        if p.exists():
-            ydl_opts["cookiefile"] = str(p.absolute())
-            logger.warning(f"SUCCESS: Found YouTube cookies at {p.absolute()}! Injecting into yt-dlp...")
-            cookie_found = True
-            break
+    try:
+        # Create YouTube object (automatically spoof clients and generates po_token to bypass bot blocks)
+        yt = YouTube(url)
+        
+        title = yt.title or "Untitled"
+        duration = yt.length or 0
+        
+        # Get highest quality audio stream
+        ys = yt.streams.get_audio_only()
+        if not ys:
+            raise RuntimeError("No audio streams found for this video")
             
-    if not cookie_found:
-        logger.error("CRITICAL: youtube_cookies.txt was NOT FOUND anywhere on the server! yt-dlp will run anonymously and likely get blocked.")
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        title = info.get("title", "Untitled")
-        duration = info.get("duration", 0)
-
-    # Find the downloaded WAV file
-    wav_files = list(output_dir.glob("*.wav"))
-    if not wav_files:
-        raise RuntimeError("YouTube audio download failed — no WAV file produced")
-
-    audio_path = wav_files[0]
-    logger.info(f"YouTube download complete: {audio_path.name} ({duration}s)")
-
-    return {
-        "audio_path": audio_path,
-        "title": title,
-        "duration": float(duration) if duration else get_audio_duration(audio_path),
-    }
+        # Download as m4a
+        m4a_path = output_dir / "raw_audio.m4a"
+        ys.download(output_path=str(output_dir), filename="raw_audio.m4a")
+        
+        if not m4a_path.exists():
+            raise RuntimeError("YouTube audio download failed — file not written to disk")
+            
+        # Normalize to WAV using our existing ffmpeg utility
+        normalized_path = output_dir / "audio_normalized.wav"
+        normalize_audio(m4a_path, normalized_path)
+        
+        # Clean up raw m4a
+        m4a_path.unlink(missing_ok=True)
+        
+        actual_duration = float(duration) if duration else get_audio_duration(normalized_path)
+        logger.info(f"YouTube download complete: {normalized_path.name} ({actual_duration}s)")
+        
+        return {
+            "audio_path": normalized_path,
+            "title": title,
+            "duration": actual_duration,
+        }
+    except Exception as e:
+        logger.error(f"pytubefix failed to download {url}: {e}")
+        raise RuntimeError(f"YouTube Download Failed. Error: {e}")
 
 
 
