@@ -103,6 +103,8 @@ export function FileUpload() {
             {(file.size / (1024 * 1024)).toFixed(1)}MB
           </span>
         </motion.div>
+      )}
+
       {isError && (
         <motion.div
           className={styles.errorAlert}
