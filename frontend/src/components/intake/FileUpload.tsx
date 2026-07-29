@@ -17,7 +17,7 @@ const ACCEPTED_TYPES: Record<string, string[]> = {
 };
 
 export function FileUpload() {
-  const { mutate, isPending } = useProcessUpload();
+  const { mutate, isPending, error, isError } = useProcessUpload();
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -102,6 +102,15 @@ export function FileUpload() {
           <span className={styles.fileSize}>
             {(file.size / (1024 * 1024)).toFixed(1)}MB
           </span>
+        </motion.div>
+      {isError && (
+        <motion.div
+          className={styles.errorAlert}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ color: "#ef4444", marginTop: "1rem", textAlign: "center", backgroundColor: "rgba(239, 68, 68, 0.1)", padding: "0.75rem", borderRadius: "8px" }}
+        >
+          {error instanceof Error ? error.message : "Upload failed"}
         </motion.div>
       )}
     </div>
