@@ -6,11 +6,7 @@ Uses yt-dlp for YouTube and FFmpeg for audio extraction/normalization.
 """
 
 import logging
-import re
-import logging
-import shutil
 from pathlib import Path
-import yt_dlp
 
 from app.config import settings
 from app.utils.audio import (
@@ -22,83 +18,6 @@ from app.utils.audio import (
 )
 
 logger = logging.getLogger("voxlens.media")
-
-
-def download_youtube_audio(url: str, meeting_id: str) -> dict:
-    """
-    Download audio from a YouTube video using yt-dlp with OAuth2 Device Token bypass.
-    """
-    output_dir = settings.media_path / meeting_id
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    logger.info(f"Downloading YouTube audio using yt-dlp (OAuth2 Mode): {url}")
-    
-    # We must set up a custom cache directory for yt-dlp to find the oauth2 token
-    cache_dir = Path("/tmp/yt_dlp_cache")
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Path where Render injects the Secret File
-    secret_token_path = Path("/etc/secrets/youtube_oauth2_tokens.json")
-    local_token_path = Path("youtube_oauth2_tokens.json")
-    
-    token_destination = cache_dir / "youtube_oauth2_tokens.json"
-    
-    if secret_token_path.exists():
-        shutil.copy2(secret_token_path, token_destination)
-        logger.info("Successfully injected OAuth2 Device Token from Render Secrets!")
-    elif local_token_path.exists():
-        shutil.copy2(local_token_path, token_destination)
-        logger.info("Successfully injected local OAuth2 Device Token!")
-    else:
-        logger.warning("CRITICAL: youtube_oauth2_tokens.json was NOT FOUND! YouTube will block this request.")
-
-    output_template = str(output_dir / "%(title)s.%(ext)s")
-
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": output_template,
-        "cachedir": str(cache_dir.absolute()),
-        "username": "oauth2",
-        "password": "",
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "wav",
-            }
-        ],
-        "postprocessor_args": [
-            "-ar", "16000",
-            "-ac", "1",
-        ],
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["ios", "android"]
-            }
-        },
-        "quiet": False,
-        "no_warnings": False,
-        "extract_flat": False,
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        title = info.get("title", "Untitled")
-        duration = info.get("duration", 0)
-
-    # Find the downloaded WAV file
-    wav_files = list(output_dir.glob("*.wav"))
-    if not wav_files:
-        raise RuntimeError("YouTube audio download failed — no WAV file produced")
-
-    audio_path = wav_files[0]
-    logger.info(f"YouTube download complete: {audio_path.name} ({duration}s)")
-
-    return {
-        "audio_path": audio_path,
-        "title": title,
-        "duration": float(duration) if duration else get_audio_duration(audio_path),
-    }
-
 
 
 

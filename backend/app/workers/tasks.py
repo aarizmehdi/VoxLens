@@ -73,31 +73,17 @@ def process_meeting_task(meeting_id: str):
         _update_meeting_status(meeting_id, "downloading", 10)
         logger.info("Step 1: Media acquisition")
 
-        from app.services.media_service import (
-            download_youtube_audio,
-            process_uploaded_file,
-        )
+        from app.services.media_service import process_uploaded_file
 
-        if source_type == "youtube":
-            media_result = download_youtube_audio(source_url, meeting_id)
-            audio_path = media_result["audio_path"]
-            title = media_result.get("title")
-            duration = media_result.get("duration")
-            _update_meeting_status(
-                meeting_id, "downloading", 20,
-                title=title,
-                duration_seconds=duration,
-                audio_path=str(audio_path),
-            )
-        else:
-            media_result = process_uploaded_file(Path(original_path), meeting_id)
-            audio_path = media_result["audio_path"]
-            duration = media_result.get("duration")
-            _update_meeting_status(
-                meeting_id, "processing_audio", 20,
-                duration_seconds=duration,
-                audio_path=str(audio_path),
-            )
+        media_result = process_uploaded_file(Path(original_path), meeting_id)
+        audio_path = media_result["audio_path"]
+        duration = media_result.get("duration")
+        
+        _update_meeting_status(
+            meeting_id, "processing_audio", 20,
+            duration_seconds=duration,
+            audio_path=str(audio_path),
+        )
 
         # ============================================================
         # Step 2: Prepare Audio Chunks

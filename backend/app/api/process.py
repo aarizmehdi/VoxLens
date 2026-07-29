@@ -12,44 +12,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Meeting
-from app.schemas import ProcessURLRequest, MeetingResponse
+from app.schemas import MeetingResponse
 from app.config import settings
 
 router = APIRouter()
-
-
-@router.post("/process/url", response_model=MeetingResponse, tags=["Processing"])
-async def process_url(request: ProcessURLRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """
-    Process a YouTube URL.
-    Downloads the video, extracts audio, transcribes, summarizes, and embeds.
-    """
-    # Validate URL (basic check)
-    url = request.url.strip()
-    if not any(domain in url for domain in ["youtube.com", "youtu.be"]):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid URL. Please provide a valid YouTube URL.",
-        )
-
-    # Create meeting record
-    meeting = Meeting(
-        source_type="youtube",
-        source_url=url,
-        language=request.language,
-        status="pending",
-        progress=0,
-    )
-    db.add(meeting)
-    db.commit()
-    db.refresh(meeting)
-
-    # Dispatch background task
-    from app.workers.tasks import process_meeting_task
-
-    background_tasks.add_task(process_meeting_task, meeting.id)
-
-    return meeting
 
 
 @router.post("/process/upload", response_model=MeetingResponse, tags=["Processing"])
