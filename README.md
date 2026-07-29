@@ -1,55 +1,113 @@
-# VoxLens — AI Meeting Intelligence Platform
+<div align="center">
+  <img src="https://raw.githubusercontent.com/aarizmehdi/VoxLens/main/frontend/public/logo.png" width="100" alt="VoxLens Logo">
+  
+  # VoxLens — AI Meeting Intelligence
+  
+  **Transform raw meeting recordings into structured, interactive intelligence in seconds.**
 
-VoxLens is a production-grade, enterprise meeting intelligence platform. It ingests meeting audio/video recordings, transcribes them using the Groq AI supercomputer, generates structured meeting intelligence, and supports retrieval-based chat (RAG) over the full content.
+  [![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Python](https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+  [![ChromaDB](https://img.shields.io/badge/ChromaDB-FF69B4?style=for-the-badge&logo=database&logoColor=white)](https://www.trychroma.com/)
+</div>
+
+<br/>
+
+VoxLens is an enterprise-grade AI platform that ingests raw audio/video recordings, transcribes them using **Groq LPUs**, extracts actionable insights using **DeepSeek AI**, and allows you to chat interactively with your meetings using mathematically grounded **Retrieval-Augmented Generation (RAG)**.
+
+## ✨ Key Features
+
+- **🚀 Lightning-Fast Processing:** Utilizes Groq LPUs for near-instant transcription of hour-long meetings.
+- **🧠 Deep Reasoning:** Uses DeepSeek to intelligently extract summaries, action items, decisions, and open questions.
+- **💬 Zero-Hallucination Chat:** Talk to your meetings! We use ChromaDB and semantic search to ground all AI answers strictly in the transcript.
+- **💅 Premium UI:** Built with React 19 and Framer Motion for a stunning, responsive, dark-mode-first aesthetic.
+- **☁️ Cloud-Optimized:** Designed to run blazingly fast even on highly restricted, low-memory (512MB RAM) cloud tiers.
 
 ---
 
-## 🎙️ Cloud Architecture (How It Works)
+## 🏗️ Cloud Architecture
 
-During this presentation, you are seeing a highly customized, resilient cloud architecture designed for scale and enterprise reliability.
+The platform is designed to be highly resilient, asynchronous, and scalable.
 
-### 1. The Frontend (Vercel)
-The beautiful, responsive UI you are looking at is built with **React 19 + TypeScript** and is hosted globally via **Vercel**. It uses a custom dark-mode design system with stunning micro-animations to provide a premium user experience. It features a robust File Upload component for ingesting raw meeting recordings.
-
-### 2. The Backend (Render)
-The heavy lifting happens entirely in the cloud on **Render**:
-- **FastAPI (Python):** Handles incoming requests asynchronously using native `BackgroundTasks`, eliminating the need for complex, memory-heavy message brokers like Redis or Celery.
-- **Media Processing:** Uses `FFmpeg` to securely extract and normalize audio from user-uploaded video and audio files.
-- **AI Transcription:** Transmits the extracted audio to **Groq**, an LPU supercomputer that transcribes long meetings in a matter of seconds.
-- **Summarization:** The transcribed text is sent to **DeepSeek** (a state-of-the-art reasoning model) to generate intelligent summaries, extract action items, and find decisions.
-
-### 3. Chat & RAG (Retrieval-Augmented Generation)
-When a user asks a question in the chat:
-1. The backend mathematically embeds the user's question locally.
-2. It searches **ChromaDB** (a Vector Database) to find the exact moments in the video transcript that match the question.
-3. It sends only those specific transcript quotes to the DeepSeek AI, guaranteeing a mathematically grounded answer with zero hallucinations.
+```mermaid
+graph LR
+    User([User]) -->|Uploads Video/Audio| FE[React 19 Frontend<br/>Hosted on Vercel]
+    FE -->|Multipart Form| BE[FastAPI Backend<br/>Hosted on Render]
+    
+    subgraph "Background Processing"
+        BE -->|Extracts Audio| FF[FFmpeg]
+        FF -->|Sends WAV| Groq[Groq API<br/>Fast Transcription]
+        Groq -->|Full Transcript| DS[DeepSeek API<br/>Summarization]
+        Groq -->|Chunks| FEmb[FastEmbed<br/>ONNX Models]
+        FEmb -->|Vector Embeddings| DB[(ChromaDB<br/>Vector Store)]
+        DS -->|Structured Data| SQL[(SQLite DB)]
+    end
+    
+    User -->|Asks Question| BE
+    BE -->|Semantic Search| DB
+    DB -->|Exact Quotes| DS2[DeepSeek API<br/>RAG Engine]
+    DS2 -->|Grounded Answer| User
+```
 
 ---
 
-## 🚀 Running the App
+## 💻 Tech Stack Breakdown
 
-To run this architecture locally, follow these steps:
+### The Frontend (Vercel)
+- **React 19 + TypeScript:** The latest React primitives for flawless rendering.
+- **Vite:** Blazing-fast development environment and optimized production builds.
+- **Framer Motion:** High-performance micro-animations for a fluid user experience.
+- **Zustand + TanStack Query:** State management and asynchronous data fetching.
 
-### 1. Start the Local Backend
-The backend requires Python 3.12+ and FFmpeg installed on your system.
-```powershell
+### The Backend (Render)
+- **FastAPI (Python):** Handles incoming HTTP requests and background task orchestration natively, completely eliminating the need for heavy external queues like Celery or Redis.
+- **FFmpeg:** Automatically standardizes all uploaded media into optimal 16kHz mono audio.
+- **FastEmbed (ONNX):** We explicitly avoided heavy PyTorch dependencies. FastEmbed runs natively in C++/Rust, calculating mathematical vectors using only a tiny fraction of RAM (~150MB), perfectly fitting Render's free-tier constraints.
+- **ChromaDB:** Local vector database powering the Semantic Search engine.
+
+---
+
+## 🚀 Getting Started Locally
+
+To run this architecture on your local machine, follow these steps:
+
+### Prerequisites
+- Python 3.12+
+- Node.js 20+
+- FFmpeg installed and available in your system's PATH.
+
+### 1. Start the Backend
+Navigate to the backend directory, install dependencies, and start the FastAPI server:
+```bash
 cd backend
-.\venv\Scripts\activate
+python -m venv venv
+source venv/bin/activate  # On Windows use: .\venv\Scripts\activate
+pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 ### 2. Connect the Frontend
-In a separate terminal, start the Vite development server:
-```powershell
+In a new terminal window, navigate to the frontend directory and start the Vite development server:
+```bash
 cd frontend
+npm install
 npm run dev
 ```
 *(By default, the Vite proxy will automatically route `/api` requests to your local backend on port `8000`.)*
 
 ---
 
-## 💰 Cost and Privacy
-VoxLens is designed to be highly cost-efficient and scalable:
-- **Groq LPU Processing:** Offers blazingly fast transcription APIs at a fraction of the cost of traditional GPU providers.
-- **Affordable Intelligence:** DeepSeek is extremely inexpensive compared to competitors, while offering top-tier reasoning capabilities. 
-- **Lightweight Cloud Footprint:** By removing heavy local AI models (like Whisper) and Celery workers, the entire backend runs comfortably on a single free-tier Render instance.
+## 🛡️ RAG (Retrieval-Augmented Generation)
+
+We ensure that VoxLens **never hallucinates** when you ask a question about your meeting. 
+1. When a question is asked, `FastEmbed` mathematically converts the question into a vector.
+2. We query `ChromaDB` for the top 5 most mathematically similar moments in the transcript.
+3. We inject ONLY those exact, factual quotes into the prompt for the `DeepSeek` AI.
+4. DeepSeek answers your question and provides clickable citations pointing exactly to where it found the information.
+
+---
+
+<div align="center">
+  <i>Engineered for peak performance. Built for the modern enterprise.</i>
+</div>
