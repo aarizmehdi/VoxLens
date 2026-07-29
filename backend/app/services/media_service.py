@@ -6,10 +6,7 @@ Uses yt-dlp for YouTube and FFmpeg for audio extraction/normalization.
 """
 
 import logging
-import re
-import logging
 from pathlib import Path
-from pytubefix import YouTube
 
 from app.config import settings
 from app.utils.audio import (
@@ -21,55 +18,6 @@ from app.utils.audio import (
 )
 
 logger = logging.getLogger("voxlens.media")
-
-
-def download_youtube_audio(url: str, meeting_id: str) -> dict:
-    """
-    Download audio from a YouTube video using pytubefix (natively bypasses bot blocks).
-    """
-    output_dir = settings.media_path / meeting_id
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    logger.info(f"Downloading YouTube audio using pytubefix: {url}")
-    
-    try:
-        # Create YouTube object (automatically spoof clients and generates po_token to bypass bot blocks)
-        yt = YouTube(url)
-        
-        title = yt.title or "Untitled"
-        duration = yt.length or 0
-        
-        # Get highest quality audio stream
-        ys = yt.streams.get_audio_only()
-        if not ys:
-            raise RuntimeError("No audio streams found for this video")
-            
-        # Download as m4a
-        m4a_path = output_dir / "raw_audio.m4a"
-        ys.download(output_path=str(output_dir), filename="raw_audio.m4a")
-        
-        if not m4a_path.exists():
-            raise RuntimeError("YouTube audio download failed — file not written to disk")
-            
-        # Normalize to WAV using our existing ffmpeg utility
-        normalized_path = output_dir / "audio_normalized.wav"
-        normalize_audio(m4a_path, normalized_path)
-        
-        # Clean up raw m4a
-        m4a_path.unlink(missing_ok=True)
-        
-        actual_duration = float(duration) if duration else get_audio_duration(normalized_path)
-        logger.info(f"YouTube download complete: {normalized_path.name} ({actual_duration}s)")
-        
-        return {
-            "audio_path": normalized_path,
-            "title": title,
-            "duration": actual_duration,
-        }
-    except Exception as e:
-        logger.error(f"pytubefix failed to download {url}: {e}")
-        raise RuntimeError(f"YouTube Download Failed. Error: {e}")
-
 
 
 
