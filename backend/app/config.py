@@ -38,7 +38,8 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-chat"
 
 
-    # --- Whisper ---
+    # --- Whisper (Groq) ---
+    groq_api_key: str = ""
     whisper_model_size: str = "base"
 
     # --- Embeddings ---

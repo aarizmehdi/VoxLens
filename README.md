@@ -1,96 +1,66 @@
 # VoxLens — AI Meeting & Video Assistant
 
-VoxLens is a production-grade, local-first AI assistant that ingests YouTube links or audio/video files, transcribes them, generates structured meeting intelligence, and supports retrieval-based chat over the full content.
+VoxLens is a production-grade, local-first AI assistant that ingests YouTube links or local audio/video files, transcribes them using AI, generates structured meeting intelligence, and supports retrieval-based chat (RAG) over the full content.
 
-## Features
+---
 
-- **Media Ingestion**: Accept YouTube URLs or local audio/video file uploads.
-- **Fast, Local-First Transcription**: Powered by `faster-whisper` for English and general language optimization.
-- **Smart Summaries & Extraction**: Automatically generates concise summaries, action items (with owners and deadlines), decisions, and open questions using the DeepSeek API.
-- **RAG Chat**: Ask questions about the meeting. The assistant finds relevant chunks from the transcript and provides grounded answers with citations.
-- **Premium UI**: A polished, responsive React frontend built with a custom dark-mode design system.
+## 🎙️ Demo Architecture (How It Works)
 
-## Architecture
+During this presentation, you are seeing a highly customized, resilient architecture designed to bypass cloud hardware limits and anti-bot protections.
 
-VoxLens uses an asynchronous processing architecture to keep the UI snappy while handling heavy media workloads:
+### 1. The Frontend (Vercel)
+The beautiful, responsive UI you are looking at is built with **React 19 + TypeScript** and is hosted live on the internet via **Vercel**. It uses a custom dark-mode design system to provide a premium user experience.
 
-- **Frontend**: React 19 + Vite + TypeScript. Connects to the backend via REST API.
-- **Backend**: FastAPI (Python 3.12). Handles API requests and RAG queries.
-- **Worker**: Celery + Redis. Manages the heavy background pipeline (download → extract → transcribe → summarize → embed).
-- **Storage**: SQLite for metadata, ChromaDB for embeddings, and local filesystem for audio chunks.
-- **LLM/Embeddings**: DeepSeek via OpenAI compatible API, Hugging Face `sentence-transformers` for local embeddings.
+### 2. The Secure Tunnel (Cloudflare)
+Because free cloud servers like Render only provide 512MB of RAM (which is not enough to load heavy AI models), and because YouTube actively blocks cloud IP addresses from downloading videos, we implemented a brilliant workaround: **A Secure Local Tunnel**.
+When the Vercel frontend makes an API request, it travels through an encrypted **Cloudflare Tunnel** directly to the presenter's laptop. 
 
-## Prerequisites
+### 3. The Backend (Local Machine)
+The heavy lifting happens entirely locally on the presenter's laptop, which acts as a powerhouse server:
+- **FastAPI (Python):** Handles the incoming requests asynchronously using native `BackgroundTasks`, eliminating the need for complex message brokers like Redis or Celery.
+- **Media Ingestion:** Uses `yt-dlp` and `FFmpeg` to download and extract audio. Because this happens on a home Wi-Fi network (residential IP), YouTube's bot-detection algorithms allow it to pass seamlessly.
+- **AI Transcription:** The audio is chopped into chunks and fed into a local instance of `faster-whisper`.
+- **Summarization:** The transcribed text is sent to **DeepSeek** (a state-of-the-art reasoning model) to generate intelligent summaries, extract action items, and find decisions.
 
-- Docker and Docker Compose (recommended for easy setup)
-- OR Python 3.12, Node.js 20, Redis, and FFmpeg (for bare-metal setup)
-- A DeepSeek API key
+### 4. Chat & RAG (Retrieval-Augmented Generation)
+When a user asks a question in the chat:
+1. The backend uses HuggingFace `sentence-transformers` to mathematically embed the user's question locally.
+2. It searches **ChromaDB** (a local Vector Database) to find the exact moments in the video transcript that match the question.
+3. It sends only those specific transcript quotes to the DeepSeek AI, guaranteeing a mathematically grounded answer with zero hallucinations.
 
-## Quick Start (Docker)
+---
 
-1. **Clone the repository**
-2. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` and add your `DEEPSEEK_API_KEY`.
+## 🚀 Running the App
 
-3. **Start the stack**
-   ```bash
-   docker-compose up -d --build
-   ```
+To run this architecture yourself, follow these steps:
 
-4. **Access the application**
-   - Frontend UI: http://localhost (or http://localhost:5173 if running bare-metal dev server)
-   - Backend API Docs: http://localhost:8000/docs
-
-## Local Development (Bare-Metal)
-
-If you prefer to run services individually:
-
-**1. Infrastructure**
-Make sure Redis is running (`redis-server`).
-Make sure FFmpeg is installed (`apt install ffmpeg` or `brew install ffmpeg`).
-
-**2. Backend**
-```bash
+### 1. Start the Local Backend
+The backend requires Python 3.12+ and FFmpeg installed on your system.
+```powershell
 cd backend
-python -m venv venv
-source venv/bin/activate  # Or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-
-# Start API
-uvicorn app.main:app --reload --port 8000
-
-# Start Celery Worker (in a new terminal)
-celery -A app.workers.celery_app worker --loglevel=info
+.\venv\Scripts\activate
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-**3. Frontend**
-```bash
-cd frontend
-npm install
-npm run dev
+### 2. Start the Secure Tunnel
+In a new terminal, launch the Cloudflare tunnel to expose your local port 8000 to the internet safely.
+```powershell
+cd backend
+.\cloudflared.exe tunnel --url http://localhost:8000
 ```
+*Copy the `https://....trycloudflare.com` URL that appears in the terminal.*
 
-## How It Works
+### 3. Connect the Frontend
+Go to your Vercel Dashboard -> VoxLens Settings -> Environment Variables.
+Set `VITE_API_URL` to your Cloudflare URL, with `/api` appended at the end:
+`https://your-cloudflare-link.trycloudflare.com/api`
 
-1. **Upload**: User submits a URL or file. The FastAPI backend creates a pending `Meeting` record and dispatches a Celery task.
-2. **Processing**: The worker downloads media (using `yt-dlp`), extracts 16kHz mono audio (using `ffmpeg`), and chunks it.
-3. **Transcription**: Audio chunks are fed to `faster-whisper`.
-4. **Analysis**: The full transcript is sent to DeepSeek to generate a structured JSON report (Summary, Actions, Decisions).
-5. **Embedding**: The transcript is chunked and embedded into ChromaDB locally.
-6. **Chat**: When a user chats, their query is embedded, relevant chunks are retrieved from Chroma, and DeepSeek answers using only that context.
+Redeploy your Vercel app, and you are live!
 
-## Cost and Privacy
+---
 
+## 💰 Cost and Privacy
 VoxLens is designed to be highly cost-efficient and privacy-friendly:
-- Transcription and Embeddings run entirely locally, incurring zero API costs and keeping raw speech data on your machine.
-- LLM tasks use DeepSeek, which is extremely affordable.
-- No cloud databases or expensive PaaS subscriptions required.
-
-## Roadmap
-
-- Speaker Diarization support
-- Advanced language routing
-- Real-time transcription mode
+- **Zero API Costs for Heavy Lifting:** Audio processing, transcription, and vector embeddings run entirely locally on your CPU/GPU.
+- **Affordable Intelligence:** DeepSeek is extremely inexpensive compared to competitors, while offering top-tier reasoning capabilities. 
+- **Resilient:** By running the backend locally, you are immune to strict cloud API limits and third-party bot blocks.

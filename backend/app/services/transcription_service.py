@@ -5,6 +5,7 @@ Routes transcription to the appropriate- Whisper / Faster Whisper (Local, robust
 """
 
 import logging
+import httpx
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -66,10 +67,62 @@ def _get_whisper_model():
 
 def transcribe_whisper(audio_path: Path) -> TranscriptResult:
     """
-    Transcribe audio using local faster-whisper.
+    Transcribe audio using Groq API (whisper-large-v3) or fallback to local Whisper.
     Returns timestamped segments.
     """
-    logger.info(f"Transcribing with Whisper: {audio_path.name}")
+    if settings.groq_api_key:
+        logger.info(f"Transcribing with Groq API (whisper-large-v3): {audio_path.name}")
+        try:
+            with open(audio_path, "rb") as f:
+                files = {"file": (audio_path.name, f, "audio/wav")}
+                data = {
+                    "model": "whisper-large-v3",
+                    "response_format": "verbose_json",
+                }
+                headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
+                
+                with httpx.Client(timeout=60.0) as client:
+                    response = client.post(
+                        "https://api.groq.com/openai/v1/audio/transcriptions",
+                        files=files,
+                        data=data,
+                        headers=headers,
+                    )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    segments = []
+                    for seg in result.get("segments", []):
+                        clean_text = clean_transcript_text(seg.get("text", ""))
+                        if clean_text:
+                            segments.append(TranscriptSegment(
+                                start=seg.get("start", 0.0),
+                                end=seg.get("end", 0.0),
+                                text=clean_text
+                            ))
+                    
+                    full_text = result.get("text", "")
+                    detected_lang = result.get("language", "en")
+                    
+                    logger.info(
+                        f"Groq transcription complete: {len(segments)} segments, "
+                        f"language={detected_lang}"
+                    )
+                    
+                    return TranscriptResult(
+                        segments=segments,
+                        full_text=full_text,
+                        language=detected_lang,
+                        engine="groq_whisper",
+                    )
+                else:
+                    logger.error(f"Groq API error: {response.text}")
+                    logger.info("Falling back to local whisper...")
+        except Exception as e:
+            logger.error(f"Groq API connection error: {e}")
+            logger.info("Falling back to local whisper...")
+
+    logger.info(f"Transcribing with local Whisper: {audio_path.name}")
 
     model = _get_whisper_model()
     segments_gen, info = model.transcribe(
