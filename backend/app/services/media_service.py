@@ -118,8 +118,8 @@ def download_youtube_audio(url: str, meeting_id: str) -> dict:
         "extract_flat": False,
     }
 
-    # Check for Render Secret File first, then local fallback
-    render_cookies = Path("/opt/render/project/src/youtube_cookies.txt")
+    # Check for Render Secret File first (Docker uses /etc/secrets)
+    render_cookies = Path("/etc/secrets/youtube_cookies.txt")
     local_cookies = Path("youtube_cookies.txt")
     
     if render_cookies.exists():
