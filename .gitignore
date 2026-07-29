@@ -22,6 +22,7 @@ dist/
 .env
 .env.local
 .env.*.local
+youtube_cookies.txt
 
 # Media & Data
 *.wav
