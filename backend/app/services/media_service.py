@@ -57,6 +57,17 @@ def download_youtube_audio(url: str, meeting_id: str) -> dict:
         "extract_flat": False,
     }
 
+    # Check for Render Secret File first, then local fallback
+    render_cookies = Path("/opt/render/project/src/youtube_cookies.txt")
+    local_cookies = Path("youtube_cookies.txt")
+    
+    if render_cookies.exists():
+        ydl_opts["cookiefile"] = str(render_cookies.absolute())
+        logger.info("Injecting authenticated YouTube cookies from Render Secret File")
+    elif local_cookies.exists():
+        ydl_opts["cookiefile"] = str(local_cookies.absolute())
+        logger.info(f"Injecting authenticated YouTube cookies from {local_cookies.absolute()}")
+
     logger.info(f"Downloading YouTube audio: {url}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
