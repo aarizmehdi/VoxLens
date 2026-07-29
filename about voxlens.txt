@@ -1,0 +1,38 @@
+ "How do other YouTube download websites do it without getting banned?"
+
+The secret is Residential Proxy Networks, which cost thousands of dollars a month. Companies that run yt1s or ytmp3 do not download videos directly from their cloud servers. Instead, they buy access to millions of "Residential IPs" (real home Wi-Fi connections). These IPs are often secretly collected when regular people install sketchy free VPN apps or browser extensions.
+
+When you paste a link on one of those websites, they silently route the download request through someone's real home internet connection in Texas or Nebraska. YouTube thinks a real person is just watching a video on their laptop, so it allows the download.
+
+Render uses Datacenter IPs. YouTube maintains a hardcoded list of every datacenter IP in the world (AWS, Render, Google Cloud) and instantly blocks them from scraping to prevent massive botnets from stealing their bandwidth.
+
+Because we are using a free Render server, we cannot afford a residential proxy network, which is why we hit that absolute brick wall. But your Enterprise File Upload Pivot is actually how real B2B companies (like Otter.ai and Zoom) handle this. It is a massive win for your presentation! Let me know when you run the File Upload test
+
+
+
+
+💻 The Frontend (What the user sees)
+
+React 19 + Vite (TypeScript): Used to build the beautiful, interactive user interface. Vite makes the development server extremely fast, and React handles the state (like the chat window and progress bars).
+Vercel: The cloud hosting platform for the frontend. Chosen because it automatically deploys React apps directly from GitHub and gives you a lightning-fast global URL for free.
+
+
+⚙️ The Backend (The Brains)
+FastAPI (Python): The backend framework. Chosen because it is insanely fast, natively supports asynchronous code, and handles HTTP requests perfectly.
+Render: The cloud hosting platform for the backend. Chosen because it gives you a free Linux server that runs 24/7 to process your heavy audio tasks.
+FastAPI BackgroundTasks: Used to process audio in the background after responding to the user. We used this so we didn't have to pay for heavy enterprise task queues like Celery or Redis.
+
+
+🎵 Media Processing
+FFmpeg: An open-source media library. Used to take whatever video/audio file the user uploads (.mp4, .m4a, etc.) and instantly convert it into a pure .wav audio file so the AI can read it.
+
+
+🧠 The Artificial Intelligence
+Groq API: An AI supercomputer (LPU) provider. Used specifically for Transcription (converting audio to text). Chosen because it is 10x faster than standard GPUs, transcribing hour-long meetings in seconds.
+DeepSeek API: A state-of-the-art reasoning model. Used for two things: 1. Summarizing the transcript into action items, and 2. Chatting with the user. Chosen because it matches ChatGPT's intelligence but costs fractions of a penny.
+FastEmbed (ONNX): (NEW!) Used to generate the mathematical embeddings for the RAG search. We explicitly chose this lightweight C++/Rust engine instead of heavy PyTorch models so that the AI could run flawlessly within Render's strict 512MB RAM limits without crashing the server!
+
+
+🗄️ The Databases
+SQLite: Your traditional database. Used to save standard text data like the Meeting ID, Title, Duration, and Status. Chosen because it's built directly into Python and doesn't require a separate expensive database server.
+ChromaDB: A specialized "Vector Database". Used to power the Semantic Search (RAG). It saves the FastEmbed numbers (vectors). When a user asks a question in the chat, ChromaDB finds the exact sentence in the transcript that matches the question's meaning, preventing the AI from hallucinating!

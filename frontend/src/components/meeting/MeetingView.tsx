@@ -37,7 +37,15 @@ export function MeetingView({ meetingId }: MeetingViewProps) {
 
   // VS Code style draggable resizer for the chat panel
   const [chatWidth, setChatWidth] = useState(380);
+  const [isMobile, setIsMobile] = useState(false);
   const isDragging = useRef(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 1024);
+    checkMobile(); // Check immediately
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -148,7 +156,7 @@ export function MeetingView({ meetingId }: MeetingViewProps) {
       {/* Right: Chat Panel */}
       <div 
         className={styles.chatPanel}
-        style={{ width: `${chatWidth}px` }}
+        style={{ width: isMobile ? "100%" : `${chatWidth}px` }}
       >
         <ChatPanel meetingId={meetingId} />
       </div>

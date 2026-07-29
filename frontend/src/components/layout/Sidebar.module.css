@@ -116,3 +116,15 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100%;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+  }
+}
