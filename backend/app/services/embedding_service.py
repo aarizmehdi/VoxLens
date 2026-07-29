@@ -9,7 +9,7 @@ import logging
 
 import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
 from app.config import settings
 
@@ -20,15 +20,13 @@ _embeddings = None
 _chroma_client = None
 
 
-def _get_embeddings() -> HuggingFaceEmbeddings:
-    """Get or create the HuggingFace embeddings model."""
+def _get_embeddings() -> FastEmbedEmbeddings:
+    """Get or create the FastEmbed embeddings model (lightweight ONNX runtime)."""
     global _embeddings
     if _embeddings is None:
         logger.info(f"Loading embedding model: {settings.embedding_model}")
-        _embeddings = HuggingFaceEmbeddings(
-            model_name=settings.embedding_model,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
+        _embeddings = FastEmbedEmbeddings(
+            model_name="BAAI/bge-small-en-v1.5",
         )
         logger.info("Embedding model loaded")
     return _embeddings

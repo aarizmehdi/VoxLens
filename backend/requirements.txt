@@ -11,16 +11,7 @@ python-multipart>=0.0.12
 sqlalchemy>=2.0.36
 aiosqlite>=0.20.0
 
-# --- Background Tasks ---
-celery[redis]>=5.4.0
-redis>=5.2.0
 
-# --- Media Processing ---
-pytubefix>=10.10.1
-ffmpeg-python>=0.2.0
-
-# --- Speech-to-Text ---
-faster-whisper>=1.1.0
 
 
 # --- LLM ---
@@ -32,7 +23,7 @@ langchain-core>=0.3.28
 langchain-community>=0.3.13
 langchain-chroma>=0.2.0
 chromadb>=0.5.23
-sentence-transformers>=3.3.1
+fastembed>=0.4.1
 
 # --- Configuration ---
 pydantic-settings>=2.7.0
