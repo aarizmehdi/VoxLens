@@ -26,71 +26,75 @@ logger = logging.getLogger("voxlens.media")
 
 def download_youtube_audio(url: str, meeting_id: str) -> dict:
     """
-    Download audio from a YouTube video.
-    Uses RapidAPI if configured, otherwise falls back to yt-dlp.
-
-    Returns:
-        dict with keys: audio_path, title, duration
+    Download audio from a YouTube video using yt-dlp.
     """
     output_dir = settings.media_path / meeting_id
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # --- RAPIDAPI PROXY METHOD ---
-    # Hardcoded key fallback to ensure it works even if Render env vars are broken
-    active_key = settings.rapidapi_key or "59e46fdf44msha7d56e54332b741p132c9djsn7a205bb16283"
+    logger.info(f"Downloading YouTube audio using yt-dlp: {url}")
     
-    logger.info(f"Using RapidAPI Proxy to download YouTube audio: {url}")
-    try:
-        # Extract video ID
-        video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
-        if not video_id_match:
-            raise ValueError("Could not extract YouTube Video ID")
-        
-        video_id = video_id_match.group(1)
-        
-        api_url = "https://youtube-mp36.p.rapidapi.com/dl"
-        querystring = {"id": video_id}
-        headers = {
-            "x-rapidapi-key": active_key,
-            "x-rapidapi-host": "youtube-mp36.p.rapidapi.com"
-        }
+    output_template = str(output_dir / "%(title)s.%(ext)s")
 
-        with httpx.Client(timeout=60.0) as client:
-            response = client.get(api_url, headers=headers, params=querystring)
-            response.raise_for_status()
-            data = response.json()
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "outtmpl": output_template,
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "wav",
+            }
+        ],
+        "postprocessor_args": [
+            "-ar", "16000",
+            "-ac", "1",
+        ],
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["ios", "android"]
+            }
+        },
+        "quiet": False,
+        "no_warnings": False,
+        "extract_flat": False,
+    }
+
+    # EXTREME PATH VALIDATION FOR RENDER SECRET FILES
+    cookie_paths_to_try = [
+        Path("/etc/secrets/youtube_cookies.txt"),           # Docker Secret path
+        Path("/opt/render/project/src/youtube_cookies.txt"), # Native Render path
+        Path("youtube_cookies.txt"),                        # Local root path
+        Path("backend/youtube_cookies.txt")                 # Local nested path
+    ]
+    
+    cookie_found = False
+    for p in cookie_paths_to_try:
+        if p.exists():
+            ydl_opts["cookiefile"] = str(p.absolute())
+            logger.warning(f"SUCCESS: Found YouTube cookies at {p.absolute()}! Injecting into yt-dlp...")
+            cookie_found = True
+            break
             
-            if data.get("status") == "ok" and data.get("link"):
-                download_url = data.get("link")
-                title = data.get("title", "Untitled")
-                duration = data.get("duration", 0)
-                
-                # Download the actual MP3
-                mp3_path = output_dir / f"{title}.mp3"
-                with client.stream("GET", download_url) as r:
-                    r.raise_for_status()
-                    with open(mp3_path, "wb") as f:
-                        for chunk in r.iter_bytes(chunk_size=8192):
-                            f.write(chunk)
-                
-                # Normalize the MP3 to WAV using our existing util
-                normalized_path = output_dir / "audio_normalized.wav"
-                normalize_audio(mp3_path, normalized_path)
-                
-                # Clean up temp mp3
-                mp3_path.unlink(missing_ok=True)
-                
-                return {
-                    "audio_path": normalized_path,
-                    "title": title,
-                    "duration": float(duration) if duration else get_audio_duration(normalized_path)
-                }
-            else:
-                logger.error(f"RapidAPI returned error: {data}")
-                raise RuntimeError(f"RapidAPI Proxy Failed: {data}")
-    except Exception as e:
-        logger.error(f"RapidAPI request failed: {e}")
-        raise RuntimeError(f"YouTube Download Failed. Ensure RapidAPI key is active. Error: {e}")
+    if not cookie_found:
+        logger.error("CRITICAL: youtube_cookies.txt was NOT FOUND anywhere on the server! yt-dlp will run anonymously and likely get blocked.")
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        title = info.get("title", "Untitled")
+        duration = info.get("duration", 0)
+
+    # Find the downloaded WAV file
+    wav_files = list(output_dir.glob("*.wav"))
+    if not wav_files:
+        raise RuntimeError("YouTube audio download failed — no WAV file produced")
+
+    audio_path = wav_files[0]
+    logger.info(f"YouTube download complete: {audio_path.name} ({duration}s)")
+
+    return {
+        "audio_path": audio_path,
+        "title": title,
+        "duration": float(duration) if duration else get_audio_duration(audio_path),
+    }
 
 
 
