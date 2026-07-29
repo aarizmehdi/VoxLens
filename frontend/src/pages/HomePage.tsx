@@ -42,7 +42,7 @@ export function HomePage() {
           Meetings that <span className="gradient-text">make sense</span>
         </motion.h1>
         <motion.p className={styles.subtitle} variants={itemVariants}>
-          Paste a YouTube link or upload a recording. VoxLens transcribes, summarizes,
+          Upload a meeting recording. VoxLens transcribes, summarizes,
           extracts action items, and lets you chat with your meeting content.
         </motion.p>
       </motion.div>
