@@ -187,7 +187,19 @@ a:hover { color: var(--accent-end); }
 
 /* --- Gradient Text --- */
 .gradient-text {
-  color: var(--accent-start);
+  background: linear-gradient(
+    to right,
+    var(--accent-start),
+    #ff4b1f,
+    #ff9068,
+    var(--accent-start)
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  animation: shine 4s linear infinite;
 }
 
 /* --- Gradient Border --- */
@@ -350,6 +362,12 @@ a:hover { color: var(--accent-end); }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes shine {
+  to {
+    background-position: 300% center;
+  }
 }
 
 @keyframes gradient-shift {

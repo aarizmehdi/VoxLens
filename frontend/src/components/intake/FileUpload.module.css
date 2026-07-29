@@ -16,17 +16,59 @@
   cursor: pointer;
   transition: all var(--transition-base);
   user-select: none;
+  position: relative;
+  overflow: hidden;
 }
 
-.dropzone:hover {
-  border-color: var(--border-hover);
+/* Seductive Vercel-style rotating glow border */
+.dropzone::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent, 
+    rgba(194, 89, 52, 0.4), 
+    transparent 30%
+  );
+  animation: spin 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 0;
+}
+
+.dropzone::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: var(--bg-card);
+  border-radius: calc(var(--radius-lg) - 2px);
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.dropzone:hover::before {
+  opacity: 1;
+}
+
+.dropzone:hover::after {
   background: var(--bg-card-hover);
 }
 
-.dropzone.active {
-  border-color: var(--accent-start);
-  background: var(--accent-soft, rgba(194, 89, 52, 0.05));
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+.dropzone.active::before {
+  background: conic-gradient(
+    transparent, 
+    rgba(194, 89, 52, 0.8), 
+    transparent 30%
+  );
+  opacity: 1;
+  animation-duration: 2s;
+}
+
+.dropzone.active::after {
+  background: var(--accent-soft, rgba(194, 89, 52, 0.02));
 }
 
 .dropzone.processing {
@@ -40,6 +82,8 @@
   align-items: center;
   gap: 8px;
   text-align: center;
+  position: relative;
+  z-index: 2;
 }
 
 .icon {
